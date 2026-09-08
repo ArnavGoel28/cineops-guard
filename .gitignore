@@ -1,0 +1,66 @@
+# ─── Python ───────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ─── Node / Frontend ─────────────────────────────────────────────
+node_modules/
+.next/
+out/
+tsconfig.tsbuildinfo
+frontend/.next/
+frontend/node_modules/
+frontend/out/
+
+# ─── Environment & Secrets ────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.env
+frontend/.env.local
+
+# ─── Database & SQLite ────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+cineops.db
+
+# ─── IDE & OS ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+
+# ─── Media & Runtime Outputs (uploaded scripts, storyboards, TTS, audio) ──
+media/
+media/*
+*/media/
+frontend/public/media/
+uploads/
+*/uploads/
+generated/
+
+# ─── Scratch / Test / Temp Artifacts ──────────────────────────────
+scratch/
+temp/
+tmp/
+
+# ─── Gemini agent state ──────────────────────────────────────────
+.agents/
+.gemini/
+
+# ─── Misc Logs & Reports ─────────────────────────────────────────
+*.log
+*.pid
+*.seed
+fidelity_report.json

@@ -1,0 +1,68 @@
+[
+  {
+    "scene_id": "SC-014",
+    "description": "Rooftop leap, no wire, onto adjacent building",
+    "stunt_type": "high_fall",
+    "shoot_date": "2026-09-11",
+    "forecast_wind_kmh": 18,
+    "stunt_coordinator_assigned": true,
+    "medic_onset": true,
+    "crew_signoffs": 2,
+    "equipment_confirmed": ["crash_pad", "safety_harness"]
+  },
+  {
+    "scene_id": "SC-021",
+    "description": "Highway pursuit, three vehicles, practical driving",
+    "stunt_type": "vehicle_chase",
+    "shoot_date": "2026-09-11",
+    "forecast_wind_kmh": 22,
+    "stunt_coordinator_assigned": true,
+    "medic_onset": false,
+    "crew_signoffs": 2,
+    "equipment_confirmed": ["closed_road_permit"]
+  },
+  {
+    "scene_id": "SC-033",
+    "description": "Warehouse explosion, actor near practical fire gag",
+    "stunt_type": "fire_gag",
+    "shoot_date": "2026-09-12",
+    "forecast_wind_kmh": 21,
+    "stunt_coordinator_assigned": true,
+    "medic_onset": true,
+    "crew_signoffs": 3,
+    "equipment_confirmed": ["fire_marshal_present", "extinguisher_onset"]
+  },
+  {
+    "scene_id": "SC-040",
+    "description": "Dockside dialogue, two actors, no stunts",
+    "stunt_type": "none",
+    "shoot_date": "2026-09-12",
+    "forecast_wind_kmh": 12,
+    "stunt_coordinator_assigned": false,
+    "medic_onset": false,
+    "crew_signoffs": 0,
+    "equipment_confirmed": []
+  },
+  {
+    "scene_id": "SC-052",
+    "description": "River rescue, actor submerged for 40 seconds",
+    "stunt_type": "underwater",
+    "shoot_date": "2026-09-13",
+    "forecast_wind_kmh": 33,
+    "stunt_coordinator_assigned": true,
+    "medic_onset": true,
+    "crew_signoffs": 2,
+    "equipment_confirmed": ["safety_diver"]
+  },
+  {
+    "scene_id": "SC-061",
+    "description": "Breakaway glass bottle bar fight",
+    "stunt_type": "practical_effect",
+    "shoot_date": "2026-09-13",
+    "forecast_wind_kmh": 8,
+    "stunt_coordinator_assigned": false,
+    "medic_onset": false,
+    "crew_signoffs": 1,
+    "equipment_confirmed": []
+  }
+]

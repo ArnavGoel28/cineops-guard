@@ -1,0 +1,46 @@
+{
+  "stunt_types": {
+    "high_fall": {
+      "requires_stunt_coordinator": true,
+      "requires_medic_onset": true,
+      "max_wind_speed_kmh": 25,
+      "min_crew_signoffs": 2,
+      "required_equipment": ["crash_pad", "safety_harness"]
+    },
+    "vehicle_chase": {
+      "requires_stunt_coordinator": true,
+      "requires_medic_onset": true,
+      "max_wind_speed_kmh": 40,
+      "min_crew_signoffs": 2,
+      "required_equipment": ["closed_road_permit", "spotter"]
+    },
+    "fire_gag": {
+      "requires_stunt_coordinator": true,
+      "requires_medic_onset": true,
+      "max_wind_speed_kmh": 15,
+      "min_crew_signoffs": 3,
+      "required_equipment": ["fire_marshal_present", "extinguisher_onset"]
+    },
+    "underwater": {
+      "requires_stunt_coordinator": true,
+      "requires_medic_onset": true,
+      "max_wind_speed_kmh": 30,
+      "min_crew_signoffs": 2,
+      "required_equipment": ["safety_diver", "oxygen_onset"]
+    },
+    "practical_effect": {
+      "requires_stunt_coordinator": false,
+      "requires_medic_onset": false,
+      "max_wind_speed_kmh": 50,
+      "min_crew_signoffs": 1,
+      "required_equipment": []
+    },
+    "none": {
+      "requires_stunt_coordinator": false,
+      "requires_medic_onset": false,
+      "max_wind_speed_kmh": 100,
+      "min_crew_signoffs": 0,
+      "required_equipment": []
+    }
+  }
+}
