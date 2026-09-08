@@ -4,10 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Film, Shield, FileText, Mic, Video, Users,
-  Settings, ChevronRight, Clapperboard, Plus, ChevronDown, Check, X, Loader2
+  Settings, ChevronRight, Clapperboard, Plus, ChevronDown, Check, X, Loader2, TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProject } from "./ProjectContext";
+import { BoxOfficePredictorModal } from "./BoxOfficePredictorModal";
 
 const nav = [
   { href: "/",             icon: LayoutDashboard, label: "Dashboard" },
@@ -29,7 +30,9 @@ export function Sidebar() {
     createProjectModalOpen,
     setCreateProjectModalOpen,
     createProject,
-    isCreating
+    isCreating,
+    predictorModalOpen,
+    setPredictorModalOpen,
   } = useProject();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -135,6 +138,23 @@ export function Sidebar() {
               </Link>
             );
           })}
+
+          {/* Special ML Prediction Model Section */}
+          <div className="pt-3 mt-3 border-t border-[#27272f]/60 px-1">
+            <p className="text-[10px] font-mono uppercase text-[#71717a] font-semibold mb-1 px-2">
+              FINANCIAL INTELLIGENCE
+            </p>
+            <button
+              onClick={() => setPredictorModalOpen(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group text-[#a1a1aa] hover:bg-emerald-500/10 hover:text-emerald-300 border border-transparent hover:border-emerald-500/20"
+            >
+              <TrendingUp className="w-4 h-4 shrink-0 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="flex-1 text-left">Box Office Model</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
+                ML ROI
+              </span>
+            </button>
+          </div>
         </nav>
 
         {/* Footer Status */}
@@ -145,6 +165,13 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+
+      {/* ML Box Office & ROI Prediction Modal */}
+      <BoxOfficePredictorModal
+        isOpen={predictorModalOpen}
+        onClose={() => setPredictorModalOpen(false)}
+        projectName={activeProject?.name}
+      />
 
       {/* New Project Modal */}
       {createProjectModalOpen && (

@@ -6,7 +6,6 @@ import { stuntTypeLabel, stuntTypeBadge, formatDate, cn } from "@/lib/utils";
 import { Shield, Zap, Clock, CheckCircle, XCircle, RefreshCw, MessageSquare, Send, ChevronRight, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { BoxOfficePredictorModal } from "@/components/BoxOfficePredictorModal";
 
 import { useProject } from "@/components/ProjectContext";
 
@@ -14,7 +13,7 @@ const DEMO_PRODUCTION_ID = process.env.NEXT_PUBLIC_DEMO_PRODUCTION_ID || "";
 
 export default function DashboardPage() {
   const qc = useQueryClient();
-  const { activeProjectId: productionId, activeProject } = useProject();
+  const { activeProjectId: productionId, activeProject, setPredictorModalOpen } = useProject();
 
   const { data: scenes = [], isLoading } = useQuery({
     queryKey: ["scenes", productionId],
@@ -32,9 +31,6 @@ export default function DashboardPage() {
   const approved = scenes.filter(s => s.latest_compliance_status === "approved").length;
   const blocked  = scenes.filter(s => s.latest_compliance_status === "blocked").length;
   const pending  = scenes.filter(s => !s.latest_compliance_status).length;
-
-  // Predictor modal state
-  const [predictorOpen, setPredictorOpen] = useState(false);
 
   // Agent chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -77,7 +73,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setPredictorOpen(true)}
+            onClick={() => setPredictorModalOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-sm font-medium border border-emerald-500/30 transition-colors shadow-sm"
           >
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
@@ -257,13 +253,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Box Office & ROI Prediction Modal */}
-      <BoxOfficePredictorModal
-        isOpen={predictorOpen}
-        onClose={() => setPredictorOpen(false)}
-        projectName={activeProject?.name}
-      />
     </div>
   );
 }

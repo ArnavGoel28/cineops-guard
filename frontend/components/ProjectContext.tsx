@@ -13,6 +13,8 @@ type ProjectContextType = {
   setCreateProjectModalOpen: (open: boolean) => void;
   createProject: (name: string) => Promise<void>;
   isCreating: boolean;
+  predictorModalOpen: boolean;
+  setPredictorModalOpen: (open: boolean) => void;
 };
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient();
   const [activeProjectId, setActiveProjectIdState] = useState<string>("");
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState<boolean>(false);
+  const [predictorModalOpen, setPredictorModalOpen] = useState<boolean>(false);
 
   const { data: productions = [], isLoading } = useQuery({
     queryKey: ["productions"],
@@ -74,6 +77,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         setCreateProjectModalOpen,
         createProject,
         isCreating: createMut.isPending,
+        predictorModalOpen,
+        setPredictorModalOpen,
       }}
     >
       {children}
