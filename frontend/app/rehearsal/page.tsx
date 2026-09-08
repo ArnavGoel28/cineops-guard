@@ -660,30 +660,6 @@ export default function RehearsalPage() {
             </div>
           )}
 
-          {/* Live Transcript Box */}
-          <div className="rounded-xl border border-[#27272f] bg-[#111118] overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-[#27272f] text-xs text-[#5a5a6e] font-medium uppercase tracking-wider flex items-center justify-between">
-              <span>Live Dialogue Transcript</span>
-              <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-            </div>
-            <div ref={transcriptRef} className="p-3.5 space-y-2 min-h-[100px] max-h-48 overflow-y-auto">
-              {transcript.length === 0 ? (
-                <p className="text-xs text-[#5a5a6e] text-center mt-3 font-mono">
-                  Dialogue transcript will appear here in real-time as you speak...
-                </p>
-              ) : (
-                transcript.map((line, i) => (
-                  <div key={i} className="flex gap-2 text-xs md:text-sm">
-                    <span className={cn("font-bold shrink-0 text-xs", line.role === "Actor" ? "text-emerald-400" : "text-violet-400")}>
-                      {line.role}:
-                    </span>
-                    <span className="text-[#f4f4f8]">{line.text}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
           {/* Coaching summary */}
           {summary && (
             <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-4 fade-in">
