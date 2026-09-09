@@ -95,6 +95,28 @@ jobs:
             --set-env-vars GEMINI_MODEL="gemini-3.6-flash",GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}",GRAFANA_URL="${{ secrets.GRAFANA_URL }}",GRAFANA_API_KEY="${{ secrets.GRAFANA_API_KEY }}" \
             --project="${{ secrets.GCP_PROJECT_ID }}"
 
+      - name: Build & Push Frontend UI Docker Image
+        run: |
+          UI_SERVICE_NAME="cineops-guard-ui"
+          UI_IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${UI_SERVICE_NAME}:${{ github.sha }}"
+          echo "Building ${UI_IMAGE_NAME}..."
+          docker build --build-arg NEXT_PUBLIC_API_URL="https://cineops-guard-api-687888972021.us-central1.run.app" -t "${UI_IMAGE_NAME}" ./frontend
+          docker push "${UI_IMAGE_NAME}"
+          echo "UI_IMAGE_NAME=${UI_IMAGE_NAME}" >> $GITHUB_ENV
+          echo "UI_SERVICE_NAME=${UI_SERVICE_NAME}" >> $GITHUB_ENV
+
+      - name: Deploy Frontend UI to Cloud Run
+        run: |
+          REGION="${{ secrets.GCP_REGION || 'us-central1' }}"
+          gcloud run deploy "$UI_SERVICE_NAME" \
+            --image "$UI_IMAGE_NAME" \
+            --platform managed \
+            --region "${REGION}" \
+            --allow-unauthenticated \
+            --memory 1Gi \
+            --cpu 1 \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
       - name: Set up Python for Agent Engine Deploy
         uses: actions/setup-python@v5
         with:
