@@ -108,7 +108,7 @@ jobs:
 
       - name: Deploy ADK Root Agent to Vertex AI Agent Engine
         run: |
-          python -m agent.deploy_agent_engine --project "${{ secrets.GCP_PROJECT_ID }}" --location "${{ secrets.GCP_REGION || 'us-central1' }}"
+          python -m agent.deploy_agent_engine --project "${{ secrets.GCP_PROJECT_ID }}" --location "${{ secrets.GCP_REGION || 'us-central1' }}" --dry-run
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.6-flash

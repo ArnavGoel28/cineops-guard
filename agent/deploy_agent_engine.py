@@ -36,6 +36,15 @@ def deploy_to_agent_engine(
 
     try:
         import vertexai
+        from google.cloud import aiplatform
+
+        # Monkeypatch missing aiplatform.AgentEngine if needed by internal GCP SDK calls
+        if not hasattr(aiplatform, "AgentEngine"):
+            try:
+                from vertexai.preview import reasoning_engines
+                aiplatform.AgentEngine = getattr(reasoning_engines, "ReasoningEngine", object)
+            except Exception:
+                aiplatform.AgentEngine = object
 
         vertexai.init(project=project_id, location=location)
 
