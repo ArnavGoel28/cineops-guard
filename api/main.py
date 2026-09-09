@@ -108,7 +108,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/media", StaticFiles(directory="media"), name="media")
+_media_dir = Path("media")
+_media_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(_media_dir)), name="media")
 
 _mcp: Optional[httpx.AsyncClient] = None
 
