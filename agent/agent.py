@@ -84,7 +84,6 @@ root_agent = Agent(
         "RehearsalAgent (Live API voice), DailiesAgent (video analysis)."
     ),
     instruction=DIRECTOR_INSTRUCTION,
-    safety_settings=DEFAULT_SAFETY_SETTINGS,
     sub_agents=[
         compliance_agent,
         script_intake_agent,
