@@ -13,6 +13,7 @@ instead of local JSON files. The forced-tool-call mechanism is unchanged.
 from __future__ import annotations
 
 import asyncio
+import os
 from typing import Optional
 
 from google.adk.agents import Agent
@@ -175,7 +176,7 @@ async def _async_check(scene_id: str) -> dict:
 
 compliance_agent = Agent(
     name="compliance_agent",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     description=(
         "Production-safety gate. Checks stunt/scene compliance against "
         "safety rules read from the MCP server. Must always call "

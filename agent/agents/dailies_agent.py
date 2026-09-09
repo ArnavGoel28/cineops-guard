@@ -96,7 +96,7 @@ async def _async_transcribe(dailies_id: str, video_uri: str, scene_id: Optional[
 
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model="gemini-2.5-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
             contents=[video_ref, prompt],
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
@@ -251,7 +251,7 @@ Return empty array [] if delivery matches intent. Return ONLY JSON.
 
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model="gemini-2.5-flash",
+            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
             contents=prompt,
             config=types.GenerateContentConfig(response_mime_type="application/json"),
         )
@@ -276,7 +276,7 @@ Return empty array [] if delivery matches intent. Return ONLY JSON.
 
 dailies_agent = Agent(
     name="dailies_agent",
-    model="gemini-2.5-flash",
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     description=(
         "Processes raw video dailies: transcribes with timestamps, generates "
         "captions, and compares actor delivery tone to script intent. "
