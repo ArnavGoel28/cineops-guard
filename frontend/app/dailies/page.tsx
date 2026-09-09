@@ -63,7 +63,7 @@ export default function DailiesPage() {
   });
 
   useEffect(() => {
-    if (jobStatus?.status === "completed" || jobStatus?.status === "failed") {
+    if (jobStatus?.status === "complete" || jobStatus?.status === "failed") {
       setJobId(null);
       refetch();
     }
