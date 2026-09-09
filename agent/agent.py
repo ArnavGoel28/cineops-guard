@@ -72,6 +72,8 @@ general questions about productions, schedules, and scene status directly,
 but always route safety/approval questions to compliance_agent.
 """
 
+from agent.safety_config import DEFAULT_SAFETY_SETTINGS
+
 root_agent = Agent(
     name="cineops_director",
     model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
@@ -82,6 +84,7 @@ root_agent = Agent(
         "RehearsalAgent (Live API voice), DailiesAgent (video analysis)."
     ),
     instruction=DIRECTOR_INSTRUCTION,
+    safety_settings=DEFAULT_SAFETY_SETTINGS,
     sub_agents=[
         compliance_agent,
         script_intake_agent,

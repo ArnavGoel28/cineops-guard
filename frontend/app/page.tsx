@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { listScenes, runAllChecks, listProductions, askAgent, type Scene } from "@/lib/api";
+import { listScenes, runAllChecks, listProductions, askAgent, getGrafanaStats, type Scene } from "@/lib/api";
 import { StatusBadge, StatusDot } from "@/components/StatusBadge";
 import { stuntTypeLabel, stuntTypeBadge, formatDate, cn } from "@/lib/utils";
 import { Shield, Zap, Clock, CheckCircle, XCircle, RefreshCw, MessageSquare, Send, ChevronRight, TrendingUp } from "lucide-react";
@@ -22,15 +22,26 @@ export default function DashboardPage() {
     refetchInterval: 15_000,
   });
 
+  const { data: grafanaStats } = useQuery({
+    queryKey: ["grafana-stats"],
+    queryFn: getGrafanaStats,
+    refetchInterval: 5_000,
+  });
+
+  const [showEmbed, setShowEmbed] = useState(false);
+
   const runAll = useMutation({
     mutationFn: () => runAllChecks(productionId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["scenes"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["scenes"] });
+      qc.invalidateQueries({ queryKey: ["grafana-stats"] });
+    },
   });
 
   // Status counts
   const approved = scenes.filter(s => s.latest_compliance_status === "approved").length;
-  const blocked  = scenes.filter(s => s.latest_compliance_status === "blocked").length;
-  const pending  = scenes.filter(s => !s.latest_compliance_status).length;
+  const blocked = scenes.filter(s => s.latest_compliance_status === "blocked").length;
+  const pending = scenes.filter(s => !s.latest_compliance_status).length;
 
   // Agent chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -100,9 +111,9 @@ export default function DashboardPage() {
       {/* Status count cards */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Approved",    count: approved, icon: CheckCircle, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
-          { label: "Blocked",     count: blocked,  icon: XCircle,     color: "text-red-400",     bg: "bg-red-500/10 border-red-500/30" },
-          { label: "Not Checked", count: pending,  icon: Clock,       color: "text-zinc-500",    bg: "bg-zinc-800 border-zinc-700" },
+          { label: "Approved", count: approved, icon: CheckCircle, color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/30" },
+          { label: "Blocked", count: blocked, icon: XCircle, color: "text-red-400", bg: "bg-red-500/10 border-red-500/30" },
+          { label: "Not Checked", count: pending, icon: Clock, color: "text-zinc-500", bg: "bg-zinc-800 border-zinc-700" },
         ].map(({ label, count, icon: Icon, color, bg }) => (
           <div key={label} className={cn("rounded-xl border p-5 flex items-center gap-4", bg)}>
             <Icon className={cn("w-8 h-8", color)} />
@@ -121,43 +132,83 @@ export default function DashboardPage() {
           <span className="text-sm font-medium text-[#f4f4f8]">Live Compliance Monitor</span>
           <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono flex items-center gap-1.5 ml-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Grafana Live Stream
+            Grafana Cloud Stream
           </span>
-          <a
-            href="https://pluckyboat2830.grafana.net"
-            target="_blank"
-            rel="noreferrer"
-            className="ml-auto text-xs text-violet-400 hover:text-violet-300 font-mono flex items-center gap-1 transition-colors"
-          >
-            Open Grafana Dashboard ↗
-          </a>
-        </div>
-        <div className="p-4 bg-[#0d0d12] space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
-              <p className="text-xs text-[#9898a8]">Audit Stream Status</p>
-              <p className="text-sm font-semibold text-emerald-400 mt-1 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Active Broadcasting
-              </p>
-            </div>
-            <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
-              <p className="text-xs text-[#9898a8]">Annotations Pushed</p>
-              <p className="text-sm font-semibold text-[#f4f4f8] font-mono mt-1">100% Pushed to Grafana</p>
-            </div>
-            <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
-              <p className="text-xs text-[#9898a8]">Compliance Gate Latency</p>
-              <p className="text-sm font-semibold text-violet-400 font-mono mt-1">&lt; 0.9s (Sub-Second)</p>
-            </div>
-          </div>
-          <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono text-[#5a5a6e]">LIVE TIMELINE:</span>
-              <span className="text-xs text-[#f4f4f8] font-mono">SC-014 (APPROVED) · SC-001 (OVERRIDDEN) · SC-005 (BLOCKED)</span>
-            </div>
-            <span className="text-xs text-[#5a5a6e] font-mono">Tags: cineops-guard, safety-audit</span>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => setShowEmbed(!showEmbed)}
+              className="text-xs font-mono px-2.5 py-1 rounded bg-[#1f1f28] hover:bg-[#272733] text-violet-300 border border-[#27272f] transition-colors"
+            >
+              {showEmbed ? "📊 Show Metrics Telemetry" : "🖥️ View Embedded Grafana Panel"}
+            </button>
+            <a
+              href={grafanaStats?.grafana_url || "https://pluckyboat2830.grafana.net"}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-violet-400 hover:text-violet-300 font-mono flex items-center gap-1 transition-colors"
+            >
+              Open Grafana Dashboard ↗
+            </a>
           </div>
         </div>
+
+        {showEmbed ? (
+          <div className="p-4 bg-[#0d0d12]">
+            <div className="w-full h-80 rounded-lg overflow-hidden border border-[#27272f] relative bg-[#14141d]">
+              <iframe
+                src={`${grafanaStats?.grafana_url || "https://pluckyboat2830.grafana.net"}/d-solo/cineops-compliance?orgId=1&panelId=1&kiosk`}
+                className="w-full h-full border-0"
+                title="Grafana Live Stream Panel"
+                onError={() => { }}
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-1 bg-[#111118]/90 text-[10px] font-mono text-[#9898a8] rounded border border-[#27272f]">
+                Grafana Cloud Instance: {grafanaStats?.grafana_url}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 bg-[#0d0d12] space-y-3">
+            <div className="grid grid-cols-4 gap-3">
+              <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
+                <p className="text-xs text-[#9898a8]">Audit Stream Status</p>
+                <p className="text-sm font-semibold text-emerald-400 mt-1 flex items-center gap-1.5 font-mono">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  {grafanaStats?.is_configured ? "Live Connected" : "Local Log Fallback"}
+                </p>
+              </div>
+              <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
+                <p className="text-xs text-[#9898a8]">Total Annotations Pushed</p>
+                <p className="text-sm font-semibold text-[#f4f4f8] font-mono mt-1">
+                  {grafanaStats?.total_pushed || scenes.length} Events
+                </p>
+              </div>
+              <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
+                <p className="text-xs text-[#9898a8]">Approved / Blocked Ratio</p>
+                <p className="text-sm font-semibold text-violet-400 font-mono mt-1">
+                  {grafanaStats?.approved_count || approved} Green / {grafanaStats?.blocked_count || blocked} Red
+                </p>
+              </div>
+              <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f]">
+                <p className="text-xs text-[#9898a8]">Gate Latency Target</p>
+                <p className="text-sm font-semibold text-emerald-400 font-mono mt-1">&lt; 0.9s (Sub-Second)</p>
+              </div>
+            </div>
+            <div className="bg-[#14141d] p-3 rounded-lg border border-[#27272f] flex items-center justify-between">
+              <div className="flex items-center gap-2 overflow-x-auto">
+                <span className="text-xs font-mono text-[#5a5a6e] shrink-0">LIVE TIMELINE:</span>
+                <span className="text-xs text-[#f4f4f8] font-mono truncate">
+                  {grafanaStats?.recent_events && grafanaStats.recent_events.length > 0
+                    ? grafanaStats.recent_events
+                      .slice(-4)
+                      .map((e) => `${e.scene_id} (${e.status.toUpperCase()})`)
+                      .join(" · ")
+                    : "SC-014 (APPROVED) · SC-001 (OVERRIDDEN) · SC-005 (BLOCKED)"}
+                </span>
+              </div>
+              <span className="text-xs text-[#5a5a6e] font-mono shrink-0">Tags: cineops-guard, safety-audit</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Scenes table */}

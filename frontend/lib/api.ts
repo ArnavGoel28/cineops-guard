@@ -47,6 +47,8 @@ export const runAllChecks = (productionId: string) =>
     method: "POST",
   });
 
+export const getGrafanaStats = () => apiFetch<GrafanaStats>("/grafana/stats");
+
 // ─── Scripts ─────────────────────────────────────────────────────────
 export const createScript = (productionId: string) =>
   apiFetch<Script>(`/scripts?production_id=${productionId}`, { method: "POST" });
@@ -228,6 +230,22 @@ export type ComplianceCheck = {
   overridden_by_user_id?: string;
   override_reason?: string;
   created_at: string;
+};
+export type GrafanaStats = {
+  grafana_url: string;
+  is_configured: boolean;
+  total_pushed: number;
+  failed_pushes: number;
+  approved_count: number;
+  blocked_count: number;
+  last_pushed_at?: number;
+  recent_events: {
+    scene_id: string;
+    status: string;
+    stunt_type: string;
+    timestamp: number;
+    text: string;
+  }[];
 };
 export type Script = {
   id: string;

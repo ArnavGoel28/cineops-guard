@@ -152,6 +152,17 @@ async def _async_transcribe(dailies_id: str, video_uri: str, scene_id: Optional[
     # Save captions SRT
     captions_uri = _save_captions_locally(dailies_id, transcript)
 
+    # ── Automated Multimodal Tool Trigger ──
+    # When visual safety hazards are detected in video footage, automatically invoke check_safety_compliance
+    auto_triggered_compliance = None
+    if safety_hazard_flags and scene_id:
+        try:
+            from agent.agents.compliance_agent import check_safety_compliance
+            print(f"[DailiesAgent] Multimodal Visual Trigger: Hazard detected in {scene_id} video footage. Executing compliance gate tool...")
+            auto_triggered_compliance = check_safety_compliance(scene_id)
+        except Exception as exc:
+            print(f"[DailiesAgent] Auto-triggered compliance check notice: {exc}")
+
     # Update dailies record via MCP with full multimodal results
     await mcp.update_dailies(
         dailies_id=dailies_id,
@@ -171,6 +182,7 @@ async def _async_transcribe(dailies_id: str, video_uri: str, scene_id: Optional[
         "caption_metadata": caption_metadata,
         "safety_hazard_flags": safety_hazard_flags,
         "sentiment_flags": sentiment_flags,
+        "auto_triggered_compliance": auto_triggered_compliance,
     }
 
 

@@ -219,6 +219,13 @@ async def health():
     return {"status": "ok", "mcp_server": "ok" if mcp_ok else "unreachable"}
 
 
+@app.get("/grafana/stats")
+def grafana_stats():
+    """Return real-time Grafana telemetry stats & pushed annotation metrics."""
+    from agent.grafana_client import get_grafana_telemetry_stats
+    return get_grafana_telemetry_stats()
+
+
 # ─────────────────────────────────────────────────────────────────────
 # FAST COMPLIANCE CHECK (no LLM — for automation / "run all checks" button)
 # ─────────────────────────────────────────────────────────────────────

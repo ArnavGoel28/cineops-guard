@@ -9,10 +9,20 @@ something to show instead of one lonely data point.
 
 import json
 
-from agent.tools import check_safety_compliance, _SCHEDULE  # noqa: E402
+from agent.agents.compliance_agent import check_safety_compliance  # noqa: E402
+from agent.grafana_client import get_grafana_telemetry_stats  # noqa: E402
+
+SAMPLE_SCENES = ["SC-001", "SC-005", "SC-014", "SC-022", "SC-030"]
 
 if __name__ == "__main__":
-    for scene_id in _SCHEDULE:
+    print("🎬 Seeding Grafana Live Stream Annotations...")
+    for scene_id in SAMPLE_SCENES:
         result = check_safety_compliance(scene_id)
-        print(json.dumps(result, indent=2))
+        print(f"[{scene_id}] -> Status: {result.get('status').upper()} | Grafana: {result.get('grafana')}")
         print("-" * 60)
+
+    stats = get_grafana_telemetry_stats()
+    print("\n📊 GRAFANA TELEMETRY SUMMARY:")
+    print(json.dumps(stats, indent=2))
+
+

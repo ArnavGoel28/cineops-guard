@@ -31,6 +31,31 @@ GRAFANA_URL = os.getenv("GRAFANA_URL", "").rstrip("/")
 GRAFANA_API_KEY = os.getenv("GRAFANA_API_KEY", "")
 
 
+# In-memory telemetry metrics store
+_TELEMETRY_STATS = {
+    "total_pushed": 0,
+    "failed_pushes": 0,
+    "approved_count": 0,
+    "blocked_count": 0,
+    "last_pushed_at": None,
+    "recent_events": [],
+}
+
+
+def get_grafana_telemetry_stats() -> dict:
+    """Return aggregated telemetry stats for Grafana reporting endpoints."""
+    return {
+        "grafana_url": GRAFANA_URL or "Not Configured",
+        "is_configured": bool(GRAFANA_URL and GRAFANA_API_KEY),
+        "total_pushed": _TELEMETRY_STATS["total_pushed"],
+        "failed_pushes": _TELEMETRY_STATS["failed_pushes"],
+        "approved_count": _TELEMETRY_STATS["approved_count"],
+        "blocked_count": _TELEMETRY_STATS["blocked_count"],
+        "last_pushed_at": _TELEMETRY_STATS["last_pushed_at"],
+        "recent_events": _TELEMETRY_STATS["recent_events"][-10:],
+    }
+
+
 def push_compliance_event(
     scene_id: str,
     status: str,
@@ -63,12 +88,27 @@ def push_compliance_event(
         "text": text,
     }
 
+    event_record = {
+        "scene_id": scene_id,
+        "status": status,
+        "stunt_type": stunt_type or "general",
+        "timestamp": payload["time"],
+        "text": text,
+    }
+    _TELEMETRY_STATS["recent_events"].append(event_record)
+    _TELEMETRY_STATS["last_pushed_at"] = payload["time"]
+    if status == "approved":
+        _TELEMETRY_STATS["approved_count"] += 1
+    elif status == "blocked":
+        _TELEMETRY_STATS["blocked_count"] += 1
+
     if not GRAFANA_URL or not GRAFANA_API_KEY:
         logger.warning(
             "GRAFANA_URL / GRAFANA_API_KEY not set — logging event locally "
             "instead of pushing to Grafana: %s",
             payload,
         )
+        _TELEMETRY_STATS["failed_pushes"] += 1
         return {"pushed": False, "reason": "grafana_not_configured", "payload": payload}
 
     try:
@@ -82,7 +122,10 @@ def push_compliance_event(
             timeout=10,
         )
         resp.raise_for_status()
+        _TELEMETRY_STATS["total_pushed"] += 1
         return {"pushed": True, "response": resp.json()}
     except requests.RequestException as exc:
+        _TELEMETRY_STATS["failed_pushes"] += 1
         logger.error("Failed to push annotation to Grafana: %s", exc)
         return {"pushed": False, "reason": str(exc), "payload": payload}
+

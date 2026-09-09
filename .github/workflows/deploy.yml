@@ -1,0 +1,102 @@
+name: CineOps Guard CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  test-and-verify:
+    name: 🧪 Test & ADK Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify ADK Agent Engine Serialization (Dry Run)
+        run: |
+          python -m agent.deploy_agent_engine --dry-run
+        env:
+          GEMINI_MODEL: gemini-3.6-flash
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'demo-key-for-ci-dryrun' }}
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Next.js Frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
+
+  deploy-to-gcp:
+    name: 🚀 Deploy to GCP Cloud Run & Vertex AI
+    needs: test-and-verify
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build & Deploy API Gateway to Cloud Run
+        run: |
+          SERVICE_NAME="cineops-guard-api"
+          REGION="${{ secrets.GCP_REGION || 'us-central1' }}"
+          IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${SERVICE_NAME}:${{ github.sha }}"
+
+          echo "Building container image ${IMAGE_NAME}..."
+          gcloud builds submit --tag "${IMAGE_NAME}" --project="${{ secrets.GCP_PROJECT_ID }}"
+
+          echo "Deploying to Cloud Run..."
+          gcloud run deploy "${SERVICE_NAME}" \
+            --image "${IMAGE_NAME}" \
+            --platform managed \
+            --region "${REGION}" \
+            --allow-unauthenticated \
+            --set-env-vars GEMINI_MODEL="gemini-3.6-flash",GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}",GRAFANA_URL="${{ secrets.GRAFANA_URL }}",GRAFANA_API_KEY="${{ secrets.GRAFANA_API_KEY }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}"
+
+      - name: Set up Python for Agent Engine Deploy
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Deploy ADK Root Agent to Vertex AI Agent Engine
+        run: |
+          python -m agent.deploy_agent_engine --project "${{ secrets.GCP_PROJECT_ID }}" --location "${{ secrets.GCP_REGION || 'us-central1' }}"
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.6-flash

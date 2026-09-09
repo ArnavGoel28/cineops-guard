@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python -m uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./cineops.db
+      - GEMINI_MODEL=gemini-3.6-flash
+    volumes:
+      - ./media:/app/media
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8080
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - MCP_SERVER_URL=http://mcp-server:8000
+      - GEMINI_MODEL=gemini-3.6-flash
+      - GRAFANA_URL=${GRAFANA_URL}
+      - GRAFANA_API_KEY=${GRAFANA_API_KEY}
+    depends_on:
+      - mcp-server
+    volumes:
+      - ./media:/app/media
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    depends_on:
+      - api-gateway
