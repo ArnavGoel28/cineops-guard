@@ -65,18 +65,24 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Build & Deploy API Gateway to Cloud Run
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker gcr.io --quiet
+
+      - name: Build & Push Docker Image
         run: |
           SERVICE_NAME="cineops-guard-api"
-          REGION="${{ secrets.GCP_REGION || 'us-central1' }}"
           IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${SERVICE_NAME}:${{ github.sha }}"
+          echo "Building ${IMAGE_NAME}..."
+          docker build -t "${IMAGE_NAME}" .
+          docker push "${IMAGE_NAME}"
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "SERVICE_NAME=${SERVICE_NAME}" >> $GITHUB_ENV
 
-          echo "Building container image ${IMAGE_NAME}..."
-          gcloud builds submit --tag "${IMAGE_NAME}" --suppress-logs --project="${{ secrets.GCP_PROJECT_ID }}"
-
-          echo "Deploying to Cloud Run..."
-          gcloud run deploy "${SERVICE_NAME}" \
-            --image "${IMAGE_NAME}" \
+      - name: Deploy API Gateway to Cloud Run
+        run: |
+          REGION="${{ secrets.GCP_REGION || 'us-central1' }}"
+          gcloud run deploy "$SERVICE_NAME" \
+            --image "$IMAGE_NAME" \
             --platform managed \
             --region "${REGION}" \
             --allow-unauthenticated \
