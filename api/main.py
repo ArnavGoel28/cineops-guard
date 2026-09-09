@@ -56,15 +56,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from google.adk.runners import InMemoryRunner
-from google.genai import types as genai_types
-
 from api.jobs import create_job, get_job, run_job_background, all_jobs
 
 # Lazily-loaded at server startup (not at import time) to allow Cloud Run env vars to be present
 _root_agent = None
-_runner: Optional[InMemoryRunner] = None
+_runner: Optional[Any] = None
 _check_safety_compliance = None
+_genai_types = None
 
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000")
 LOCAL_MEDIA_DIR = Path(os.getenv("LOCAL_MEDIA_DIR", "./media"))
@@ -77,14 +75,17 @@ DEMO_PRODUCTION_ID = os.getenv("DEMO_PRODUCTION_ID", "")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _root_agent, _runner, _check_safety_compliance, _mcp
+    global _root_agent, _runner, _check_safety_compliance, _mcp, _genai_types
     LOCAL_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
-    # Lazy-load agent stack here so Cloud Run env vars (GEMINI_API_KEY etc.) are ready
+    # Lazy-load ALL heavy ADK + genai imports here — after uvicorn is already listening
     try:
+        from google.adk.runners import InMemoryRunner
+        from google.genai import types as _gt
         from agent.agent import root_agent as _loaded_agent
         from agent.tools import check_safety_compliance as _loaded_check
         _root_agent = _loaded_agent
         _check_safety_compliance = _loaded_check
+        _genai_types = _gt
         _runner = InMemoryRunner(agent=_root_agent, app_name="cineops_guard")
         print("[CineOps] ADK agent runner initialized successfully")
     except Exception as exc:
@@ -273,8 +274,8 @@ async def ask_agent(req: AskRequest):
                 app_name="cineops_guard", user_id=user_id, session_id=session_id
             )
 
-        content = genai_types.Content(
-            role="user", parts=[genai_types.Part(text=req.message)]
+        content = _genai_types.Content(
+            role="user", parts=[_genai_types.Part(text=req.message)]
         )
 
         final_text = None
