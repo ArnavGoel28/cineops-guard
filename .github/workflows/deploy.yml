@@ -72,7 +72,7 @@ jobs:
           IMAGE_NAME="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${SERVICE_NAME}:${{ github.sha }}"
 
           echo "Building container image ${IMAGE_NAME}..."
-          gcloud builds submit --tag "${IMAGE_NAME}" --project="${{ secrets.GCP_PROJECT_ID }}"
+          gcloud builds submit --tag "${IMAGE_NAME}" --suppress-logs --project="${{ secrets.GCP_PROJECT_ID }}"
 
           echo "Deploying to Cloud Run..."
           gcloud run deploy "${SERVICE_NAME}" \
