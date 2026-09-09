@@ -51,6 +51,7 @@ uploads/
 generated/
 
 # ─── Scratch / Test / Temp Artifacts ──────────────────────────────
+docs/
 scratch/
 temp/
 tmp/

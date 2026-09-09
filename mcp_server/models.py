@@ -201,9 +201,13 @@ class DailiesOut(BaseModel):
     id: str
     scene_id: str
     video_uri: str
-    transcript: Optional[Any]
-    captions_uri: Optional[str]
-    sentiment_flags: Optional[Any]
+    transcript: Optional[Any] = None
+    captions_uri: Optional[str] = None
+    sentiment_flags: Optional[Any] = None
+    caption_metadata: Optional[Any] = None
+    safety_hazard_flags: Optional[Any] = None
+    vfx_concept_uris: Optional[List[str]] = None
+    score_audio_uri: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -218,6 +222,10 @@ class DailiesUpdate(BaseModel):
     transcript: Optional[Any] = None
     captions_uri: Optional[str] = None
     sentiment_flags: Optional[Any] = None
+    caption_metadata: Optional[Any] = None
+    safety_hazard_flags: Optional[Any] = None
+    vfx_concept_uris: Optional[List[str]] = None
+    score_audio_uri: Optional[str] = None
 
 
 # ─── Productions ────────────────────────────────────────────────────

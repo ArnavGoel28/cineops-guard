@@ -175,7 +175,7 @@ async def _async_check(scene_id: str) -> dict:
 
 compliance_agent = Agent(
     name="compliance_agent",
-    model="gemini-3.6-flash",
+    model="gemini-2.5-flash",
     description=(
         "Production-safety gate. Checks stunt/scene compliance against "
         "safety rules read from the MCP server. Must always call "

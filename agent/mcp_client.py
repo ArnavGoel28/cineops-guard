@@ -19,7 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001").rstrip("/")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8000").rstrip("/")
 _TIMEOUT = 30.0  # seconds
 
 
@@ -227,6 +227,10 @@ class MCPClient:
         transcript: Any = None,
         captions_uri: Optional[str] = None,
         sentiment_flags: Any = None,
+        caption_metadata: Any = None,
+        safety_hazard_flags: Any = None,
+        vfx_concept_uris: Optional[List[str]] = None,
+        score_audio_uri: Optional[str] = None,
     ) -> Dict[str, Any]:
         body: Dict[str, Any] = {}
         if transcript is not None:
@@ -235,6 +239,14 @@ class MCPClient:
             body["captions_uri"] = captions_uri
         if sentiment_flags is not None:
             body["sentiment_flags"] = sentiment_flags
+        if caption_metadata is not None:
+            body["caption_metadata"] = caption_metadata
+        if safety_hazard_flags is not None:
+            body["safety_hazard_flags"] = safety_hazard_flags
+        if vfx_concept_uris is not None:
+            body["vfx_concept_uris"] = vfx_concept_uris
+        if score_audio_uri is not None:
+            body["score_audio_uri"] = score_audio_uri
         async with self._client() as c:
             r = await c.patch(f"/dailies/{dailies_id}", json=body)
             r.raise_for_status()

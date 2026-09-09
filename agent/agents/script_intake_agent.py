@@ -118,7 +118,7 @@ SCRIPT TEXT:
         from google.genai import types as genai_types
         response = await asyncio.to_thread(
             client.models.generate_content,
-            model="gemini-3.6-flash",
+            model="gemini-2.5-flash",
             contents=extraction_prompt,
             config=genai_types.GenerateContentConfig(
                 response_mime_type="application/json"
@@ -255,7 +255,7 @@ def finalize_intake(script_id: str, scenes_created: int) -> dict:
 
 script_intake_agent = Agent(
     name="script_intake_agent",
-    model="gemini-3.6-flash",
+    model="gemini-2.5-flash",
     description=(
         "Parses uploaded script PDFs into structured scene records. "
         "Extracts scenes, characters, locations, and stunt flags. "

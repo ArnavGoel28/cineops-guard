@@ -17,15 +17,19 @@ from typing import List, Optional
 
 from sqlalchemy import (
     Boolean, Column, Date, DateTime, Enum, Float, Integer,
-    String, Text, ForeignKey, JSON, ARRAY, func
+    String, Text, ForeignKey, JSON, ARRAY, func, select, text
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID, ARRAY as PG_ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase, relationship
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(BASE_DIR, "cineops.db").replace("\\", "/")
+DEFAULT_DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite+aiosqlite:///./cineops.db"
+    DEFAULT_DB_URL
 )
 
 # SQLite doesn't support ARRAY or UUID natively — use Text as fallback
@@ -133,6 +137,7 @@ class Scene(Base):
     equipment_confirmed = Column(JSON, default=list)
     characters = Column(JSON, default=list)
     dialogue_script = Column(JSON, default=list)
+    risk_rating = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     production = relationship("Production", back_populates="scenes")
@@ -141,7 +146,21 @@ class Scene(Base):
         order_by="ComplianceCheck.created_at.desc()", lazy="select",
         cascade="all, delete-orphan"
     )
-    media_assets = relationship("MediaAsset", back_populates="scene", lazy="select", cascade="all, delete-orphan")
+    safety_budgets = relationship("SafetyBudget", back_populates="scene", cascade="all, delete-orphan")
+    media_assets = relationship("MediaAsset", back_populates="scene", cascade="all, delete-orphan")
+
+
+class SafetyBudget(Base):
+    __tablename__ = "safety_budgets"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    scene_id = Column(String(36), ForeignKey("scenes.id"), nullable=False)
+    category = Column(String, nullable=False)
+    allocated_amount = Column(Float, nullable=False)
+    spent_amount = Column(Float, default=0.0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    scene = relationship("Scene", back_populates="safety_budgets")
 
 
 class ActorProfile(Base):
@@ -216,10 +235,105 @@ class Dailies(Base):
     transcript = Column(JSON)
     captions_uri = Column(String)
     sentiment_flags = Column(JSON)
+    caption_metadata = Column(JSON)
+    safety_hazard_flags = Column(JSON)
+    vfx_concept_uris = Column(JSON, default=list)
+    score_audio_uri = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 async def init_db():
-    """Create all tables (idempotent). Call on startup."""
+    """Create all tables (idempotent) and seed sample Dailies data if empty."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Auto-migrate SQLite schema if columns were added after initial table creation
+        for col, col_type in [
+            ("caption_metadata", "JSON"),
+            ("safety_hazard_flags", "JSON"),
+            ("vfx_concept_uris", "JSON"),
+            ("score_audio_uri", "TEXT"),
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE dailies ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
+
+        for col, col_type in [
+            ("risk_rating", "TEXT"),
+            ("header", "TEXT"),
+            ("description", "TEXT"),
+        ]:
+            try:
+                await conn.execute(text(f"ALTER TABLE scenes ADD COLUMN {col} {col_type}"))
+            except Exception:
+                pass
+
+    async with AsyncSession(engine) as db:
+        try:
+            result = await db.execute(select(Dailies))
+            if not result.scalars().first():
+                p_res = await db.execute(select(Production))
+                prod = p_res.scalars().first()
+                if not prod:
+                    prod = Production(id="prod-001", name="OPERATION AGNI (2026 Production)")
+                    db.add(prod)
+                    await db.commit()
+                    await db.refresh(prod)
+
+                s_res = await db.execute(select(Scene))
+                scene = s_res.scalars().first()
+                if not scene:
+                    scene = Scene(
+                        id="SC-014",
+                        production_id=prod.id,
+                        scene_number="SC-014",
+                        header="EXT. JAIPUR HIGHWAY - NIGHT",
+                        description="High-speed motorcycle chase sequence through narrow crowded bazaar.",
+                        stunt_type="vehicle_chase",
+                        location="highway",
+                        risk_rating="High"
+                    )
+                    db.add(scene)
+                    await db.commit()
+                    await db.refresh(scene)
+
+                d1 = Dailies(
+                    id="dailies-sample-01",
+                    scene_id=scene.id,
+                    video_uri="http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+                    transcript=[
+                        {"timestamp": "0:02", "speaker": "VIKRAM", "text": "Move! We've got 90 seconds before Metro PD locks down!"},
+                        {"timestamp": "0:08", "speaker": "PRIYA", "text": "Main vault doors are sealed! Plant the charge!"},
+                        {"timestamp": "0:15", "speaker": "VIKRAM", "text": "Hold on tight! LEAP!"}
+                    ],
+                    caption_metadata={
+                        "summary": "Vault breaching sequence inside high-tech bank interior. Fast-paced tracking camera with practical smoke effects.",
+                        "camera_techniques": ["Handheld Tracking Shot", "Dynamic Zoom-In"],
+                        "lighting": "High-contrast emergency strobe lighting with blue lens flare",
+                        "tags": ["Action", "Stunt", "Vault Breach", "Pyrotechnic"],
+                        "director_take_score": 92
+                    },
+                    safety_hazard_flags=[
+                        {
+                            "timestamp": "0:12",
+                            "hazard": "Practical smoke density near breach zone approaching visibility threshold",
+                            "severity": "medium",
+                            "recommended_action": "Ensure active ventilation on set before Take 2"
+                        }
+                    ],
+                    sentiment_flags=[
+                        {
+                            "timestamp": "0:08",
+                            "script_tone": "High Panic & Urgency",
+                            "delivered_tone": "Measured & Calm",
+                            "severity": "medium"
+                        }
+                    ],
+                    vfx_concept_uris=["http://localhost:8080/media/vfx_sample1.png"],
+                    score_audio_uri="http://localhost:8080/media/score_sample1.mp3"
+                )
+                db.add(d1)
+                await db.commit()
+        except Exception as seed_err:
+            print(f"[init_db] Seed notice: {seed_err}")
+

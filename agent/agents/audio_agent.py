@@ -310,7 +310,7 @@ async def _upload_audio_to_gcs(data: bytes, filename: str) -> str:
 
 audio_agent = Agent(
     name="audio_agent",
-    model="gemini-3.6-flash",
+    model="gemini-2.5-flash",
     description=(
         "Generates mood/reference music clips (Lyria 3) and multi-speaker "
         "dialogue reference reads (Gemini TTS) for scenes. Saves audio to "

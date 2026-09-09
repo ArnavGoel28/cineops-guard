@@ -273,6 +273,21 @@ export type Dailies = {
   transcript?: { timestamp: string; speaker: string; text: string }[];
   captions_uri?: string;
   sentiment_flags?: { timestamp: string; script_tone: string; delivered_tone: string; severity: string }[];
+  caption_metadata?: {
+    summary: string;
+    camera_techniques: string[];
+    lighting: string;
+    tags: string[];
+    director_take_score: number;
+  };
+  safety_hazard_flags?: {
+    timestamp: string;
+    hazard: string;
+    severity: "low" | "medium" | "high";
+    recommended_action: string;
+  }[];
+  vfx_concept_uris?: string[];
+  score_audio_uri?: string;
   created_at: string;
 };
 export type SafetyRule = {
@@ -334,4 +349,22 @@ export const listActorProfiles = (productionId?: string) => {
   const qs = productionId ? `?production_id=${encodeURIComponent(productionId)}` : "";
   return apiFetch<ActorProfile[]>(`/actor-profiles${qs}`);
 };
+
+export const generateDailiesVFX = (dailiesId: string, prompt: string, sceneId?: string) =>
+  apiFetch<{ dailies_id: string; vfx_concept_uri: string; all_vfx_uris: string[] }>(
+    `/dailies/${dailiesId}/generate-vfx`,
+    {
+      method: "POST",
+      body: JSON.stringify({ prompt, scene_id: sceneId }),
+    }
+  );
+
+export const generateDailiesScore = (dailiesId: string, genre: string) =>
+  apiFetch<{ dailies_id: string; score_audio_uri: string; genre: string }>(
+    `/dailies/${dailiesId}/generate-score`,
+    {
+      method: "POST",
+      body: JSON.stringify({ genre }),
+    }
+  );
 
