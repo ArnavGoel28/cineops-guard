@@ -90,7 +90,38 @@ async def lifespan(app: FastAPI):
         print("[CineOps] ADK agent runner initialized successfully")
     except Exception as exc:
         print(f"[CineOps] ADK agent runner initialization failed (degraded mode): {exc}")
-    _mcp = httpx.AsyncClient(base_url=MCP_SERVER_URL, timeout=30.0)
+    # Ensure database schema & seed data are initialized
+    try:
+        from mcp_server.database import init_db
+        await init_db()
+        print("[CineOps] Database initialized successfully")
+    except Exception as db_exc:
+        print(f"[CineOps] DB init notice: {db_exc}")
+
+    # Determine if external MCP server is running or if we should use in-process ASGI transport
+    use_in_process = False
+    if "mcp-server" not in MCP_SERVER_URL and "localhost:8000" in MCP_SERVER_URL or "127.0.0.1:8000" in MCP_SERVER_URL:
+        try:
+            async with httpx.AsyncClient(base_url=MCP_SERVER_URL, timeout=1.5) as test_c:
+                res = await test_c.get("/productions")
+                if res.status_code >= 500:
+                    use_in_process = True
+        except Exception:
+            use_in_process = True
+    elif "mcp-server" not in MCP_SERVER_URL:
+        use_in_process = True
+
+    if use_in_process:
+        print("[CineOps] Initializing in-process ASGI transport for MCP server calls")
+        from mcp_server.main import app as mcp_app
+        _mcp = httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=mcp_app),
+            base_url="http://mcp-internal",
+            timeout=30.0
+        )
+    else:
+        print(f"[CineOps] Connecting to external MCP server at {MCP_SERVER_URL}")
+        _mcp = httpx.AsyncClient(base_url=MCP_SERVER_URL, timeout=30.0)
     yield
     if _mcp:
         await _mcp.aclose()

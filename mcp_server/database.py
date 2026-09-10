@@ -25,12 +25,32 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, "cineops.db").replace("\\", "/")
-DEFAULT_DB_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    DEFAULT_DB_URL
-)
+def _get_database_url() -> str:
+    env_url = os.getenv("DATABASE_URL")
+    if env_url:
+        return env_url
+
+    # Check if BASE_DIR is writable (e.g. local dev)
+    test_path = os.path.join(BASE_DIR, ".write_test")
+    try:
+        with open(test_path, "w") as f:
+            f.write("ok")
+        os.remove(test_path)
+        return f"sqlite+aiosqlite:///{DB_PATH}"
+    except Exception:
+        # BASE_DIR is read-only (e.g. Cloud Run / Docker container filesystem)
+        tmp_db_path = "/tmp/cineops.db"
+        if os.path.exists(DB_PATH) and not os.path.exists(tmp_db_path):
+            try:
+                import shutil
+                shutil.copy2(DB_PATH, tmp_db_path)
+                print(f"[database.py] Copied seed cineops.db to {tmp_db_path}")
+            except Exception as copy_err:
+                print(f"[database.py] DB copy notice: {copy_err}")
+        return f"sqlite+aiosqlite:///{tmp_db_path}"
+
+DATABASE_URL = _get_database_url()
 
 # SQLite doesn't support ARRAY or UUID natively — use Text as fallback
 IS_POSTGRES = DATABASE_URL.startswith("postgresql")

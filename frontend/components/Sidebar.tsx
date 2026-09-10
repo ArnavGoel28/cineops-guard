@@ -11,13 +11,13 @@ import { useProject } from "./ProjectContext";
 import { BoxOfficePredictorModal } from "./BoxOfficePredictorModal";
 
 const nav = [
-  { href: "/",             icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/schedule",     icon: Film,             label: "Schedule" },
-  { href: "/intake",       icon: FileText,         label: "Script Intake" },
-  { href: "/rehearsal",    icon: Mic,              label: "Rehearsal Room" },
-  { href: "/actors",       icon: Users,            label: "Actor Directory" },
-  { href: "/dailies",      icon: Video,            label: "Dailies" },
-  { href: "/admin",        icon: Settings,         label: "Admin" },
+  { href: "/", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/schedule", icon: Film, label: "Schedule" },
+  { href: "/intake", icon: FileText, label: "Script Intake" },
+  { href: "/rehearsal", icon: Mic, label: "Rehearsal Room" },
+  { href: "/actors", icon: Users, label: "Actor Directory" },
+  { href: "/dailies", icon: Video, label: "Dailies" },
+  { href: "/admin", icon: Settings, label: "Admin" },
 ];
 
 export function Sidebar() {
@@ -37,12 +37,18 @@ export function Sidebar() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    await createProject(newProjectName.trim());
-    setNewProjectName("");
+    setCreateError(null);
+    try {
+      await createProject(newProjectName.trim());
+      setNewProjectName("");
+    } catch (err: any) {
+      setCreateError(err?.response?.data?.detail || err?.message || "Failed to create project");
+    }
   };
 
   return (
@@ -203,6 +209,11 @@ export function Sidebar() {
                 className="w-full bg-[#181820] border border-[#27272f] rounded-lg px-3.5 py-2.5 text-sm text-[#f4f4f8] placeholder-[#52525b] focus:outline-none focus:border-violet-500"
               />
             </div>
+            {createError && (
+              <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+                {createError}
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2 border-t border-[#27272f]">
               <button
                 type="button"

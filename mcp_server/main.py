@@ -102,7 +102,8 @@ async def list_productions(db: AsyncSession = Depends(get_db)):
 
 @app.post("/productions", response_model=ProductionOut, status_code=201)
 async def create_production(body: ProductionCreate, db: AsyncSession = Depends(get_db)):
-    prod = Production(**body.model_dump())
+    prod_data = body.model_dump(exclude_unset=True)
+    prod = Production(**prod_data)
     db.add(prod)
     await db.commit()
     await db.refresh(prod)
