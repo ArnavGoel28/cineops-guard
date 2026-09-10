@@ -32,8 +32,10 @@ GENAI_CLIENT = None
 def _get_client():
     global GENAI_CLIENT
     if GENAI_CLIENT is None:
-        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        from agent.secret_manager import get_secret
+        api_key = get_secret("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         if api_key:
+            os.environ["GEMINI_API_KEY"] = api_key
             GENAI_CLIENT = GenAIClient(api_key=api_key)
         else:
             GENAI_CLIENT = GenAIClient()

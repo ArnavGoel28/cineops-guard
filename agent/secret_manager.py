@@ -54,6 +54,17 @@ def get_secret(secret_id: str, default: Optional[str] = None) -> Optional[str]:
     return default
 
 
+def init_secrets() -> dict:
+    """Populate critical environment variables from GCP Secret Manager or env."""
+    secrets = {}
+    for key in ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GRAFANA_API_KEY"]:
+        val = get_secret(key)
+        if val:
+            os.environ[key] = val
+            secrets[key] = "[SET]"
+    return secrets
+
+
 if __name__ == "__main__":
     print(f"GEMINI_API_KEY: {'[SET]' if get_secret('GEMINI_API_KEY') else '[NOT SET]'}")
     print(f"GRAFANA_API_KEY: {'[SET]' if get_secret('GRAFANA_API_KEY') else '[NOT SET]'}")

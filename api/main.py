@@ -77,6 +77,12 @@ DEMO_PRODUCTION_ID = os.getenv("DEMO_PRODUCTION_ID", "")
 async def lifespan(app: FastAPI):
     global _root_agent, _runner, _check_safety_compliance, _mcp, _genai_types
     LOCAL_MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        from agent.secret_manager import init_secrets
+        init_secrets()
+        print("[CineOps] Secrets initialized from GCP Secret Manager / Env")
+    except Exception as sec_err:
+        print(f"[CineOps] Secret init notice: {sec_err}")
     # Lazy-load ALL heavy ADK + genai imports here — after uvicorn is already listening
     try:
         from google.adk.runners import InMemoryRunner
