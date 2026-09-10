@@ -246,7 +246,7 @@ async def _upload_to_gcs(data: bytes, filename: str) -> str:
 
 storyboard_agent = Agent(
     name="storyboard_agent",
-    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     description=(
         "Generates storyboard panels (3–6 images) for a scene using Imagen 3. "
         "Each request is async: returns a job_id. Panels are stored in Cloud "

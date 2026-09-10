@@ -10,7 +10,7 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite+aiosqlite:///./cineops.db
-      - GEMINI_MODEL=gemini-3.6-flash
+      - GEMINI_MODEL=gemini-2.5-flash
     volumes:
       - ./media:/app/media
 
@@ -24,7 +24,7 @@ services:
     environment:
       - PORT=8080
       - MCP_SERVER_URL=http://mcp-server:8000
-      - GEMINI_MODEL=gemini-3.6-flash
+      - GEMINI_MODEL=gemini-2.5-flash
       - GRAFANA_URL=${GRAFANA_URL}
       - GRAFANA_API_KEY=${GRAFANA_API_KEY}
     depends_on:

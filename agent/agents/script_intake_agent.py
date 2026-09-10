@@ -32,7 +32,11 @@ GENAI_CLIENT = None
 def _get_client():
     global GENAI_CLIENT
     if GENAI_CLIENT is None:
-        GENAI_CLIENT = GenAIClient()
+        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        if api_key:
+            GENAI_CLIENT = GenAIClient(api_key=api_key)
+        else:
+            GENAI_CLIENT = GenAIClient()
     return GENAI_CLIENT
 
 
@@ -116,18 +120,47 @@ SCRIPT TEXT:
 
     try:
         from google.genai import types as genai_types
-        response = await asyncio.to_thread(
-            client.models.generate_content,
-            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
-            contents=extraction_prompt,
-            config=genai_types.GenerateContentConfig(
-                response_mime_type="application/json"
-            ),
-        )
-        raw = response.text.strip()
+        
+        env_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        if "3.6" in env_model:
+            env_model = "gemini-2.5-flash"
+            
+        candidate_models = [env_model, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+        # Remove duplicates preserving order
+        candidate_models = list(dict.fromkeys(candidate_models))
+
+        raw = None
+        last_error = None
+        for model in candidate_models:
+            try:
+                print(f"[_async_parse] Trying Gemini model: {model}")
+                response = await asyncio.to_thread(
+                    client.models.generate_content,
+                    model=model,
+                    contents=extraction_prompt,
+                    config=genai_types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    ),
+                )
+                if response and response.text:
+                    raw = response.text.strip()
+                    break
+            except Exception as m_err:
+                print(f"[_async_parse] Model '{model}' failed: {m_err}")
+                last_error = m_err
+
+        if not raw:
+            raise RuntimeError(f"All Gemini model connection attempts failed: {last_error}")
+
         # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
+        
+        # Extract JSON array substring if extra text surrounds it
+        json_match = re.search(r"\[\s*\{.*\}\s*\]", raw, re.DOTALL)
+        if json_match:
+            raw = json_match.group(0)
+
         scenes_data: List[Dict] = json.loads(raw)
 
         # Auto-assign scene_number if missing or non-standard
@@ -255,7 +288,7 @@ def finalize_intake(script_id: str, scenes_created: int) -> dict:
 
 script_intake_agent = Agent(
     name="script_intake_agent",
-    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
     description=(
         "Parses uploaded script PDFs into structured scene records. "
         "Extracts scenes, characters, locations, and stunt flags. "

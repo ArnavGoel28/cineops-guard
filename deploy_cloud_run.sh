@@ -36,7 +36,7 @@ gcloud run deploy "${SERVICE_NAME}" \
   --platform managed \
   --region "${REGION}" \
   --allow-unauthenticated \
-  --set-env-vars GEMINI_MODEL="gemini-3.6-flash",GCP_PROJECT_ID="${PROJECT_ID}" \
+  --set-env-vars GEMINI_MODEL="gemini-2.5-flash",GCP_PROJECT_ID="${PROJECT_ID}" \
   --project="${PROJECT_ID}"
 
 echo "\n🎉 Cloud Run deployment complete! Service URL:"
