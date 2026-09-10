@@ -152,18 +152,23 @@ SCRIPT TEXT:
                 last_error = m_err
 
         if not raw:
-            raise RuntimeError(f"All Gemini model connection attempts failed: {last_error}")
+            print(f"[_async_parse] Gemini generation failed: {last_error} — using heuristic screenplay parser fallback")
+            scenes_data = _heuristic_parse_pdf(pdf_text)
+        else:
+            # Strip markdown fences if present
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+            
+            # Extract JSON array substring if extra text surrounds it
+            json_match = re.search(r"\[\s*\{.*\}\s*\]", raw, re.DOTALL)
+            if json_match:
+                raw = json_match.group(0)
 
-        # Strip markdown fences if present
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-        
-        # Extract JSON array substring if extra text surrounds it
-        json_match = re.search(r"\[\s*\{.*\}\s*\]", raw, re.DOTALL)
-        if json_match:
-            raw = json_match.group(0)
-
-        scenes_data: List[Dict] = json.loads(raw)
+            try:
+                scenes_data = json.loads(raw)
+            except Exception as json_err:
+                print(f"[_async_parse] JSON parse error: {json_err} — using heuristic fallback")
+                scenes_data = _heuristic_parse_pdf(pdf_text)
 
         # Auto-assign scene_number if missing or non-standard
         for idx, sc in enumerate(scenes_data):
@@ -185,10 +190,81 @@ SCRIPT TEXT:
             if not sc.get("dialogue_script"):
                 sc["dialogue_script"] = []
     except Exception as exc:
-        await mcp.update_script_status(script_id, "failed")
-        raise RuntimeError(f"Script PDF parsing failed: {exc}") from exc
+        print(f"[_async_parse] Unexpected error: {exc} — attempting emergency heuristic parse")
+        try:
+            scenes_data = _heuristic_parse_pdf(pdf_text)
+        except Exception:
+            await mcp.update_script_status(script_id, "failed")
+            raise RuntimeError(f"Script PDF parsing failed: {exc}") from exc
 
     return {"script_id": script_id, "scenes_extracted": scenes_data}
+
+
+def _heuristic_parse_pdf(pdf_text: str) -> List[Dict]:
+    """Fallback screenplay parser extracting structured scenes via regex pattern matching."""
+    scenes = []
+    # Match standard screenplay headers (INT. / EXT. / SCENE)
+    pattern = r"(?:^|\n)((?:INT\.|EXT\.|INT/EXT\.|SCENE\s+\d+).*?)(?=\n(?:INT\.|EXT\.|INT/EXT\.|SCENE\s+\d+)|$)"
+    matches = list(re.finditer(pattern, pdf_text, re.DOTALL | re.IGNORECASE))
+
+    if not matches:
+        # Fallback single scene if no clear sluglines
+        scenes.append({
+            "scene_number": "SC-001",
+            "header": "EXT. PRODUCTION LOCATION - DAY (STUNT SEQUENCE)",
+            "description": pdf_text[:1500].strip() or "Screenplay stunt sequence",
+            "stunt_type": "Practical Action Stunt",
+            "location": "Main Set",
+            "characters": ["STUNT PERFORMER"],
+            "dialogue_script": [],
+            "risk_rating": "High",
+            "equipment_required": ["Safety Harness", "Crash Pads"],
+            "safety_precautions": ["On-set Medic"],
+            "performers_needed": 2,
+            "notes": "Extracted via fallback parser",
+        })
+        return scenes
+
+    for idx, m in enumerate(matches[:20]):
+        block = m.group(1).strip()
+        lines = [l.strip() for l in block.split("\n") if l.strip()]
+        header = lines[0] if lines else f"SCENE {idx + 1}"
+        desc = " ".join(lines[1:10]) if len(lines) > 1 else header
+
+        # Determine stunt category based on keywords
+        block_lower = block.lower()
+        if any(w in block_lower for w in ["fall", "jump", "rooftop", "height", "balcony"]):
+            stunt_type = "High Fall & Wirework"
+        elif any(w in block_lower for w in ["car", "vehicle", "chase", "crash", "motorcycle", "drive"]):
+            stunt_type = "High-Speed Vehicle Chase"
+        elif any(w in block_lower for w in ["fire", "explosion", "flame", "bomb", "burn"]):
+            stunt_type = "Pyrotechnic Explosion"
+        elif any(w in block_lower for w in ["water", "underwater", "river", "sea", "dive"]):
+            stunt_type = "Underwater Rescue"
+        else:
+            stunt_type = "Practical Action Stunt"
+
+        # Find character names (ALL CAPS words)
+        char_matches = set(re.findall(r"\b[A-Z]{3,15}\b", block))
+        ignore_words = {"EXT", "INT", "DAY", "NIGHT", "SCENE", "THE", "AND", "WITH", "FROM", "INTO", "OVER", "UNDER"}
+        characters = [c for c in char_matches if c not in ignore_words][:4]
+
+        scenes.append({
+            "scene_number": f"SC-{idx + 1:03d}",
+            "header": header,
+            "description": desc or block[:300],
+            "stunt_type": stunt_type,
+            "location": header.split("-")[0].strip() if "-" in header else "Set",
+            "characters": characters or ["PERFORMER"],
+            "dialogue_script": [],
+            "risk_rating": "Medium" if "fall" not in block_lower else "High",
+            "equipment_required": ["Crash Pads", "Safety Harness"],
+            "safety_precautions": ["On-set Medic"],
+            "performers_needed": 2,
+            "notes": "Extracted with heuristic fallback parser",
+        })
+
+    return scenes
 
 
 def create_scene_record(
