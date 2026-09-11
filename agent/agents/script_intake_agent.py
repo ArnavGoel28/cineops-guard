@@ -26,20 +26,13 @@ from google.genai import Client as GenAIClient
 
 from agent.mcp_client import mcp
 
-GENAI_CLIENT = None
-
-
 def _get_client():
-    global GENAI_CLIENT
-    if GENAI_CLIENT is None:
-        from agent.secret_manager import get_secret
-        api_key = get_secret("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-        if api_key:
-            os.environ["GEMINI_API_KEY"] = api_key
-            GENAI_CLIENT = GenAIClient(api_key=api_key)
-        else:
-            GENAI_CLIENT = GenAIClient()
-    return GENAI_CLIENT
+    from agent.secret_manager import get_secret
+    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or get_secret("GEMINI_API_KEY")
+    if api_key:
+        os.environ["GEMINI_API_KEY"] = api_key
+        return GenAIClient(api_key=api_key)
+    return GenAIClient()
 
 
 INTAKE_INSTRUCTION = """
@@ -148,11 +141,16 @@ SCRIPT TEXT:
                     raw = response.text.strip()
                     break
             except Exception as m_err:
-                print(f"[_async_parse] Model '{model}' failed: {m_err}")
-                last_error = m_err
+                print(f"[_async_parse] Model '{model}' failed: {type(m_err).__name__}: {m_err}")
+                last_error = f"[{model}] {type(m_err).__name__}: {m_err}"
 
         if not raw:
-            raise RuntimeError(f"All Gemini model connection attempts failed: {last_error}")
+            k_val = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+            raise RuntimeError(
+                f"Gemini API generation failed. "
+                f"Key Loaded: {bool(k_val)} (len={len(k_val)}). "
+                f"Details: {last_error}"
+            )
 
         # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
