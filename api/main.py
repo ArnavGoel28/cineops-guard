@@ -295,7 +295,7 @@ async def test_gemini_api():
         "secret_manager_key_present": bool(key_sm),
         "active_key_len": len(api_key or ""),
         "active_key_prefix": (api_key[:6] + "...") if api_key else "NONE",
-        "model_tested": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "model_tested": os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     }
 
     if not api_key:
@@ -307,7 +307,7 @@ async def test_gemini_api():
 
     try:
         client = GenAIClient(api_key=api_key)
-        model_id = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        model_id = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
         
         response = await asyncio.to_thread(
             client.models.generate_content,

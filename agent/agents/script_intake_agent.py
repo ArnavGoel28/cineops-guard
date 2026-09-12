@@ -121,11 +121,8 @@ SCRIPT TEXT:
         print("[_async_parse] [STEP 2/6] Initializing GenAI Client...")
         client = _get_client()
         
-        env_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        if "3.6" in env_model:
-            env_model = "gemini-2.5-flash"
-            
-        candidate_models = [env_model, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
+        env_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+        candidate_models = [env_model, "gemini-3.6-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
         candidate_models = list(dict.fromkeys(candidate_models))
 
         raw = None

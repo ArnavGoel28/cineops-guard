@@ -76,7 +76,7 @@ from agent.safety_config import DEFAULT_SAFETY_SETTINGS
 
 root_agent = Agent(
     name="cineops_director",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     description=(
         "CineOps Guard production co-pilot. Routes requests to specialist "
         "sub-agents: ComplianceAgent (safety gate), ScriptIntakeAgent (PDF parsing), "

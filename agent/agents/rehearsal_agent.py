@@ -234,7 +234,7 @@ async def run_live_session(
 
             resp = await asyncio.to_thread(
                 client.models.generate_content,
-                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
                 contents=(
                     f"You are the scene partner for a film rehearsal. The actor is playing {actor_character}. "
                     f"Opposing characters' lines in this scene:\n" + "\n".join(opposing_lines) + "\n\n"
@@ -251,7 +251,7 @@ async def run_live_session(
         try:
             resp = await asyncio.to_thread(
                 client.models.generate_content,
-                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
                 contents=(
                     f"Analyze this rehearsal transcript and provide brief coaching notes "
                     f"(pacing, missed cues, tone, areas for improvement):\n\n{transcript[:4000]}"
@@ -270,7 +270,7 @@ async def run_live_session(
 
 rehearsal_agent = Agent(
     name="rehearsal_agent",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     description=(
         "Manages actor rehearsal sessions via the Gemini Live API. "
         "Voices all scene partners in real-time bidirectional audio. "
