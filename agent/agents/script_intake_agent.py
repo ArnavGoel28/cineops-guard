@@ -113,22 +113,26 @@ SCRIPT TEXT:
 {pdf_text[:12000]}
 """
 
+    print(f"[_async_parse] [STEP 1/6] PDF text extracted successfully. Length: {len(pdf_text)} characters")
+
     try:
         from google.genai import types as genai_types
+        
+        print("[_async_parse] [STEP 2/6] Initializing GenAI Client...")
+        client = _get_client()
         
         env_model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         if "3.6" in env_model:
             env_model = "gemini-2.5-flash"
             
         candidate_models = [env_model, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]
-        # Remove duplicates preserving order
         candidate_models = list(dict.fromkeys(candidate_models))
 
         raw = None
         last_error = None
         for model in candidate_models:
             try:
-                print(f"[_async_parse] Trying Gemini model: {model}")
+                print(f"[_async_parse] [STEP 3/6] Sending request to Gemini API (model={model})...")
                 response = await asyncio.to_thread(
                     client.models.generate_content,
                     model=model,
@@ -139,19 +143,22 @@ SCRIPT TEXT:
                 )
                 if response and response.text:
                     raw = response.text.strip()
+                    print(f"[_async_parse] [STEP 4/6] Gemini API response received from model '{model}'. Response length: {len(raw)} characters")
                     break
             except Exception as m_err:
-                print(f"[_async_parse] Model '{model}' failed: {type(m_err).__name__}: {m_err}")
+                print(f"[_async_parse] [STEP 3/6 ERROR] Model '{model}' failed: {type(m_err).__name__}: {m_err}")
                 last_error = f"[{model}] {type(m_err).__name__}: {m_err}"
 
         if not raw:
             k_val = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+            print(f"[_async_parse] [STEP 4/6 FAILED] All Gemini models failed. Key Loaded: {bool(k_val)} (len={len(k_val)}). Details: {last_error}")
             raise RuntimeError(
                 f"Gemini API generation failed. "
                 f"Key Loaded: {bool(k_val)} (len={len(k_val)}). "
                 f"Details: {last_error}"
             )
 
+        print("[_async_parse] [STEP 5/6] Cleaning raw output & parsing JSON...")
         # Strip markdown fences if present
         raw = re.sub(r"^```(?:json)?\s*", "", raw)
         raw = re.sub(r"\s*```$", "", raw)
@@ -162,6 +169,7 @@ SCRIPT TEXT:
             raw = json_match.group(0)
 
         scenes_data: List[Dict] = json.loads(raw)
+        print(f"[_async_parse] [STEP 6/6] Structured scene array parsed successfully: {len(scenes_data)} scenes extracted.")
 
         # Auto-assign scene_number if missing or non-standard
         for idx, sc in enumerate(scenes_data):

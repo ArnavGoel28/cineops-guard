@@ -266,13 +266,67 @@ async def _save_upload(file: UploadFile, subdir: str) -> tuple[str, str]:
 # HEALTH
 # ─────────────────────────────────────────────────────────────────────
 @app.get("/health")
-async def health():
+async def health_check():
     try:
         mcp_health = await _mcp.get("/health")
         mcp_ok = mcp_health.status_code == 200
     except Exception:
         mcp_ok = False
     return {"status": "ok", "mcp_server": "ok" if mcp_ok else "unreachable"}
+
+
+@app.get("/api/test-gemini")
+async def test_gemini_api():
+    """Explicitly test Gemini API key authentication & connectivity."""
+    import os
+    import asyncio
+    from google.genai import Client as GenAIClient
+    from agent.secret_manager import get_secret
+
+    key_gemini = os.getenv("GEMINI_API_KEY")
+    key_google = os.getenv("GOOGLE_API_KEY")
+    key_sm = get_secret("GEMINI_API_KEY")
+    api_key = key_gemini or key_google or key_sm
+
+    diagnostic_info = {
+        "gemini_api_key_env_present": bool(key_gemini),
+        "gemini_api_key_len": len(key_gemini or ""),
+        "google_api_key_env_present": bool(key_google),
+        "secret_manager_key_present": bool(key_sm),
+        "active_key_len": len(api_key or ""),
+        "active_key_prefix": (api_key[:6] + "...") if api_key else "NONE",
+        "model_tested": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    }
+
+    if not api_key:
+        return {
+            "status": "error",
+            "message": "No Gemini API key found in environment or GCP Secret Manager",
+            "diagnostics": diagnostic_info,
+        }
+
+    try:
+        client = GenAIClient(api_key=api_key)
+        model_id = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        
+        response = await asyncio.to_thread(
+            client.models.generate_content,
+            model=model_id,
+            contents="Say 'CineOps Gemini API Connected Successfully'",
+        )
+
+        return {
+            "status": "success",
+            "gemini_response": response.text.strip() if response else None,
+            "diagnostics": diagnostic_info,
+        }
+    except Exception as exc:
+        return {
+            "status": "error",
+            "exception_type": type(exc).__name__,
+            "exception_detail": str(exc),
+            "diagnostics": diagnostic_info,
+        }
 
 
 @app.get("/grafana/stats")
