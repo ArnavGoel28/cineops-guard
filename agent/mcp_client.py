@@ -30,7 +30,55 @@ class MCPClient:
         self.base_url = base_url
 
     def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(base_url=self.base_url, timeout=_TIMEOUT)
+        url = self.base_url
+        use_in_process = False
+        if not url or "mcp-server" not in url:
+            if "localhost:8000" in url or "127.0.0.1:8000" in url or not url:
+                use_in_process = True
+
+        if use_in_process:
+            try:
+                from mcp_server.main import app as mcp_app
+                return httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=mcp_app),
+                    base_url="http://mcp-internal",
+                    timeout=_TIMEOUT
+                )
+            except Exception as exc:
+                print(f"[MCPClient] ASGI transport notice: {exc}")
+
+        return httpx.AsyncClient(base_url=url, timeout=_TIMEOUT)
+
+    # ── Generic HTTP Helpers ─────────────────────────────────────────
+    async def get(self, path: str, **params) -> Any:
+        async with self._client() as c:
+            r = await c.get(path, params={k: v for k, v in params.items() if v is not None})
+            r.raise_for_status()
+            return r.json()
+
+    async def post(self, path: str, json: Optional[dict] = None) -> Any:
+        async with self._client() as c:
+            r = await c.post(path, json=json)
+            r.raise_for_status()
+            return r.json()
+
+    async def patch(self, path: str, json: Optional[dict] = None) -> Any:
+        async with self._client() as c:
+            r = await c.patch(path, json=json)
+            r.raise_for_status()
+            return r.json()
+
+    async def put(self, path: str, json: Optional[dict] = None) -> Any:
+        async with self._client() as c:
+            r = await c.put(path, json=json)
+            r.raise_for_status()
+            return r.json()
+
+    async def delete(self, path: str) -> Any:
+        async with self._client() as c:
+            r = await c.delete(path)
+            r.raise_for_status()
+            return r.json()
 
     # ── Scenes ─────────────────────────────────────────────────────
     async def get_scene(self, scene_id: str) -> Dict[str, Any]:
