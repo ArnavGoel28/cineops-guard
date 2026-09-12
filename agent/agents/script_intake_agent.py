@@ -293,7 +293,7 @@ def finalize_intake(script_id: str, scenes_created: int) -> dict:
 
 script_intake_agent = Agent(
     name="script_intake_agent",
-    model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+    model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
     description=(
         "Parses uploaded script PDFs into structured scene records. "
         "Extracts scenes, characters, locations, and stunt flags. "
